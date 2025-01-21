@@ -48,7 +48,7 @@ class Expense(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     expense_slip = models.ImageField(upload_to='expense_slips/', null=True, blank=True)
-
+    
     def __str__(self):
         return f"{self.description} - {self.amount}"
 

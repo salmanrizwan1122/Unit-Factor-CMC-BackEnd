@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'departmentsapis',
     'designationsapis',
     'rest_framework',
+    'expenseapis',
 ]
 
 MIDDLEWARE = [

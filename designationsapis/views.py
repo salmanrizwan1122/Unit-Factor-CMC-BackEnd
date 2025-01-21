@@ -76,7 +76,7 @@ class DesignationByIdView(View):
 
 # View for updating an existing Designation
 class EditDesignationView(View):
-    def put(self, request, designation_id):
+    def post(self, request, designation_id):
         try:
             # Parse request body
             data = json.loads(request.body)
