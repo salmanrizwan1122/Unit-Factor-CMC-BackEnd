@@ -96,6 +96,8 @@ class GetUserView(View):
 
                 return JsonResponse({'users': users_data}, status=200)
 
+
+
         except User.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
         except Exception as e:
