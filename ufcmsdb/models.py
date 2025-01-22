@@ -1,4 +1,5 @@
 from django.db import models
+from datetime import date
 
 class Role(models.Model):
     id = models.AutoField(primary_key=True)
@@ -35,7 +36,9 @@ class User(models.Model):
     designation = models.ForeignKey(Designation, on_delete=models.CASCADE)
     role = models.ManyToManyField(Role, related_name='users') 
     cnicno = models.BigIntegerField() 
-
+    profile_pic = models.ImageField(upload_to='profile_pic/', null=True, blank=True)
+    joining_date = models.DateField(default=date.today)
+    user_name = models.CharField(max_length=150, unique=True)  # New unique username field
 
     def __str__(self):
         return self.name
