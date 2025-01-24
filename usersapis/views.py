@@ -1,11 +1,10 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from ufcmsdb.models import User, Department, Designation, Role
+from ufcmsdb.models import User, Department, Designation, Role, Project
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.hashers import make_password
-from rest_framework.permissions import AllowAny
+from django.db.models import Prefetch
 # Utility function to hash passwords
 def hash_password(raw_password):
     return make_password(raw_password)
@@ -83,13 +82,51 @@ class UserCreateView(APIView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class GetUserView(APIView):
-    """Retrieve user(s)."""
 
+
+class GetUserView(APIView):
     def get(self, request, user_id=None):
         try:
             if user_id:
-                user = User.objects.get(id=user_id)
+                # Retrieve a single user with related data
+                user = User.objects.prefetch_related(
+                    'role', 'department', 'designation', 
+                    'projects',  # Projects where the user is a team member
+                    Prefetch('led_projects', queryset=Project.objects.prefetch_related('team_members'))  # Projects the user leads
+                ).get(id=user_id)
+
+                # Prepare the response for led projects
+                led_projects = [
+                    {
+                        'id': project.id,
+                        'name': project.name,
+                        'deadline': project.deadline,
+                        'total_tasks': project.total_tasks,
+                        'description': project.description,
+                        'team_members': [
+                            {'id': member.id, 'name': member.name}
+                            for member in project.team_members.all()
+                        ]
+                    }
+                    for project in user.led_projects.all()
+                ]
+
+                # Prepare the response for team projects
+                team_projects = [
+                    {
+                        'id': project.id,
+                        'name': project.name,
+                        'deadline': project.deadline,
+                        'total_tasks': project.total_tasks,
+                        'description': project.description,
+                        'leader': {
+                            'id': project.leader.id,
+                            'name': project.leader.name
+                        } if project.leader else None
+                    }
+                    for project in user.projects.all()
+                ]
+
                 return JsonResponse({
                     'id': user.id,
                     'name': user.name,
@@ -99,13 +136,53 @@ class GetUserView(APIView):
                     'department': {'id': user.department.id, 'name': user.department.name},
                     'designation': {'id': user.designation.id, 'name': user.designation.name},
                     'roles': [{'id': role.id, 'name': role.name} for role in user.role.all()],
-                    'cnicno': user.cnicno
+                    'cnicno': user.cnicno,
+                    'team_projects': team_projects,
+                    'led_projects': led_projects
                 }, status=200)
+
             else:
-                users = User.objects.prefetch_related('role', 'department', 'designation').all()
+                # Retrieve all users with related data
+                users = User.objects.prefetch_related(
+                    'role', 'department', 'designation', 
+                    'projects',  # Projects where the user is a team member
+                    Prefetch('led_projects', queryset=Project.objects.prefetch_related('team_members'))  # Projects the user leads
+                ).all()
+
                 users_data = []
                 for user in users:
-                    user_roles = [{'id': role.id, 'name': role.name} for role in user.role.all()]
+                    # Prepare the response for led projects
+                    led_projects = [
+                        {
+                            'id': project.id,
+                            'name': project.name,
+                            'deadline': project.deadline,
+                            'total_tasks': project.total_tasks,
+                            'description': project.description,
+                            'team_members': [
+                                {'id': member.id, 'name': member.name}
+                                for member in project.team_members.all()
+                            ]
+                        }
+                        for project in user.led_projects.all()
+                    ]
+
+                    # Prepare the response for team projects
+                    team_projects = [
+                        {
+                            'id': project.id,
+                            'name': project.name,
+                            'deadline': project.deadline,
+                            'total_tasks': project.total_tasks,
+                            'description': project.description,
+                            'leader': {
+                                'id': project.leader.id,
+                                'name': project.leader.name
+                            } if project.leader else None
+                        }
+                        for project in user.projects.all()
+                    ]
+
                     users_data.append({
                         'id': user.id,
                         'name': user.name,
@@ -114,9 +191,12 @@ class GetUserView(APIView):
                         'address': user.address,
                         'department': {'id': user.department.id, 'name': user.department.name},
                         'designation': {'id': user.designation.id, 'name': user.designation.name},
-                        'roles': user_roles,
-                        'cnicno': user.cnicno
+                        'roles': [{'id': role.id, 'name': role.name} for role in user.role.all()],
+                        'cnicno': user.cnicno,
+                        'team_projects': team_projects,
+                        'led_projects': led_projects
                     })
+
                 return JsonResponse({'users': users_data}, status=200)
 
         except User.DoesNotExist:
@@ -124,9 +204,8 @@ class GetUserView(APIView):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-
 class UpdateUserView(APIView):
-    """Update an existing user (Token Required)."""
+   
    
 
     def post(self, request, user_id):

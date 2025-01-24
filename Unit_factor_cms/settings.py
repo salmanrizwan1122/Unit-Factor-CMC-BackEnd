@@ -20,6 +20,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # Application definition
 
+
 INSTALLED_APPS = [
     "ufcmsdb",
     'django.contrib.admin',
@@ -34,19 +35,13 @@ INSTALLED_APPS = [
     'designationsapis',
     'rest_framework',
     'expenseapis',
+    'projectsapi',
     'authapis',
-    'rest_framework.authtoken',
+    'rest_framework.authtoken'
 
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',  # Use token authentication
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',  # Require authentication for views
-    ],
-}
+
 
 
 MIDDLEWARE = [
@@ -75,6 +70,14 @@ TEMPLATES = [
         },
     },
 ]
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
 
 WSGI_APPLICATION = 'Unit_factor_cms.wsgi.application'
 

@@ -41,7 +41,7 @@ class User(models.Model):
     user_name = models.CharField(max_length=150, unique=True)  # New unique username field
 
     def __str__(self):
-        return self.name
+         return f"{self.name} ({self.user_name})"
 
 class Expense(models.Model):
     id = models.AutoField(primary_key=True)
@@ -54,6 +54,22 @@ class Expense(models.Model):
     
     def __str__(self):
         return f"{self.description} - {self.amount}"
+
+class Project(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=200)  # Project name
+    deadline = models.DateField()  # Project deadline
+    leader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='led_projects')  # Project leader
+    team_members = models.ManyToManyField(User, related_name='projects')  # All team members
+    total_tasks = models.IntegerField(default=0)  # Total number of tasks in the project
+    description = models.TextField(null=True, blank=True)  # Project description (optional)
+    created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for project creation
+    updated_at = models.DateTimeField(auto_now=True)  # Timestamp for last update
+
+    def __str__(self):
+        return self.name
+
+
 
 class Permission(models.Model):
     id = models.AutoField(primary_key=True)

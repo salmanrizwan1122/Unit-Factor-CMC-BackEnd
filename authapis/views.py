@@ -29,6 +29,9 @@ class LoginView(APIView):
 
         try:
             user = User.objects.get(user_name=user_name)
+            print(user)  # This prints the user's string representation (probably user_name)
+            print(user.id)  # This prints the user's ID
+            print(user.email)  # This prints the user's email
         except User.DoesNotExist:
             return Response(
                 {"error": "Invalid credentials"}, 
@@ -37,6 +40,7 @@ class LoginView(APIView):
 
         if check_password(raw_password, user.password):
             # Generate or get the token for the user
+            token, created = Token.objects.get_or_create(user=user)
 
             # Prepare user-related details
             roles = user.role.all()
@@ -57,9 +61,10 @@ class LoginView(APIView):
                     "department": department_data,
                     "age": user.age,
                     "address": user.address,
-                    "cinic": user.cnicno,
+                    "cnic": user.cnicno,  # Corrected from "cinic"
                     "joining_date": user.joining_date,
                 },
+                "token": token.key,  # Include the token in the response
             }
             return Response(response_data, status=status.HTTP_200_OK)
         else:
