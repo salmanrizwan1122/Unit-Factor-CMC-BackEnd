@@ -37,10 +37,8 @@ class LoginView(APIView):
             )
 
         if check_password(raw_password, user.password):
-            # Generate or get the token for the user
+       
             # token, created = Token.objects.get_or_create(user=user)
-
-            # Prepare user-related details
             roles = user.role.all()
             designation = user.designation
             department = user.department
@@ -48,7 +46,6 @@ class LoginView(APIView):
             roles_data = [{"id": role.id, "name": role.name} for role in roles]
             designation_data = {"id": designation.id, "name": designation.name} if designation else None
             department_data = {"id": department.id, "name": department.name} if department else None
-
             response_data = {
                 "user": {
                     "id": user.id,

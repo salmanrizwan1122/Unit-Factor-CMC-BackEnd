@@ -9,8 +9,9 @@ urlpatterns = [
     path('departments/api/', include('departmentsapis.urls')),
     path('designations/api/', include('designationsapis.urls')),
     path('expense/api/', include('expenseapis.urls')),
-    path('auth/api/', include('authapis.urls')),  # Authentication APIs
+    path('auth/api/', include('authapis.urls')),
     path('project/api/', include('projectsapi.urls')),  
+    path('attendence/api/', include('attendenceapis.urls'))
     
     
 ]

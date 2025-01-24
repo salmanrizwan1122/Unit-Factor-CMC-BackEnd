@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'expenseapis',
     'projectsapi',
     'authapis',
+   'attendenceapis',
     # 'rest_framework.authtoken'
 
 ]

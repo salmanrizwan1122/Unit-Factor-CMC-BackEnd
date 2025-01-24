@@ -43,6 +43,24 @@ class User(models.Model):
     def __str__(self):
          return f"{self.name} ({self.user_name})"
 
+
+
+
+class Attendance(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField(default=date.today)
+    punch_in_time = models.TimeField(null=True, blank=True)
+    punch_out_time = models.TimeField(null=True, blank=True)
+    status = models.CharField(max_length=10, choices=[('Present', 'Present'), ('Absent', 'Absent')])
+    total_hours_day = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # Hours with decimals
+    total_hours_month = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    total_hours_week = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    total_hours_year = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date} - {self.status}"
+
 class Expense(models.Model):
     id = models.AutoField(primary_key=True)
     date = models.DateField()
