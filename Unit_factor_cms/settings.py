@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'expenseapis',
     'projectsapi',
     'authapis',
-    'rest_framework.authtoken'
+    # 'rest_framework.authtoken'
 
 ]
 
@@ -70,17 +70,15 @@ TEMPLATES = [
         },
     },
 ]
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}
-
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework.authentication.TokenAuthentication',
+#     ],
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.IsAuthenticated',
+#     ],
+# }
 WSGI_APPLICATION = 'Unit_factor_cms.wsgi.application'
-
 # Database configuration
 DATABASES = {
    'default': {
@@ -92,23 +90,12 @@ DATABASES = {
        'PORT': config('DATABASE_PORT', default='5432'),
    }
 }
-
-
-
-
-
-
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
-
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

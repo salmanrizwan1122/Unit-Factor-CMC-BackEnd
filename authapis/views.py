@@ -19,6 +19,7 @@ class LoginView(APIView):
     def post(self, request):
         # Get credentials from request
         user_name = request.data.get('user_name')
+        print(user_name)
         raw_password = request.data.get('password')
 
         if not user_name or not raw_password:
@@ -26,12 +27,9 @@ class LoginView(APIView):
                 {"error": "Both user_name and password are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         try:
             user = User.objects.get(user_name=user_name)
-            print(user)  # This prints the user's string representation (probably user_name)
-            print(user.id)  # This prints the user's ID
-            print(user.email)  # This prints the user's email
+        
         except User.DoesNotExist:
             return Response(
                 {"error": "Invalid credentials"}, 
@@ -40,7 +38,7 @@ class LoginView(APIView):
 
         if check_password(raw_password, user.password):
             # Generate or get the token for the user
-            token, created = Token.objects.get_or_create(user=user)
+            # token, created = Token.objects.get_or_create(user=user)
 
             # Prepare user-related details
             roles = user.role.all()
@@ -64,7 +62,7 @@ class LoginView(APIView):
                     "cnic": user.cnicno,  # Corrected from "cinic"
                     "joining_date": user.joining_date,
                 },
-                "token": token.key,  # Include the token in the response
+                # "token": token.key,  
             }
             return Response(response_data, status=status.HTTP_200_OK)
         else:

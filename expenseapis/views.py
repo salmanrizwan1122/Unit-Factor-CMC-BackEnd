@@ -104,3 +104,26 @@ class AddExpenseView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteExpenseView(APIView):
+ 
+    def delete(self, request, expense_id):
+        try:
+            # Get the expense or return a 404 if not found
+            expense = get_object_or_404(Expense, id=expense_id)
+            
+            # Delete the expense
+            expense.delete()
+            
+            # Return success response
+            return Response(
+                {"message": f"Expense with ID {expense_id} has been deleted successfully."},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            # Handle unexpected errors
+            return Response(
+                {"error": f"An error occurred while deleting the expense: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
