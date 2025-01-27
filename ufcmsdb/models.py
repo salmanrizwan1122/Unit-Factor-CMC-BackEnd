@@ -45,7 +45,39 @@ class User(models.Model):
 
 
 
+class Leave(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leaves')
+    LEAVE_TYPES = [
+        ('Annual', 'Annual'),
+        ('Sick', 'Sick'),
+        ('Maternity', 'Maternity'),
+        ('Paternity', 'Paternity'),
+        ('Other', 'Other'),
+    ]
+    leave_type = models.CharField(max_length=100, choices=LEAVE_TYPES)
+    leave_date = models.DateField()
+    leave_from = models.DateField()
+    leave_to = models.DateField()
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Rejected', 'Rejected'),
+    ]
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='Pending')
+    reason = models.TextField()
+    approved_by = models.CharField(max_length=100, blank=True, null=True)
+    approved_date = models.DateField(blank=True, null=True)
+    approved_time = models.TimeField(blank=True, null=True)
+    leave_days = models.IntegerField(default=0)
+    leave_balance = models.IntegerField(default=0)
 
+    def __str__(self):
+        return f"{self.user.name} - {self.leave_type} - {self.status}"
+    
+
+        
+        
 class Attendance(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
