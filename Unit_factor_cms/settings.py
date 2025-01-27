@@ -79,6 +79,11 @@ TEMPLATES = [
 #         'rest_framework.permissions.IsAuthenticated',
 #     ],
 # }
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Asia/Karachi'  # Correct time zone
+USE_I18N = True
+USE_TZ = True
+
 WSGI_APPLICATION = 'Unit_factor_cms.wsgi.application'
 # Database configuration
 DATABASES = {
