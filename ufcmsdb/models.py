@@ -39,6 +39,8 @@ class User(models.Model):
     profile_pic = models.ImageField(upload_to='profile_pic/', null=True, blank=True)
     joining_date = models.DateField(default=date.today)
     user_name = models.CharField(max_length=150, unique=True)  # New unique username field
+    monthly_leave_balance = models.IntegerField(default=2)  
+    yearly_leave_balance = models.IntegerField(default=24) 
 
     def __str__(self):
          return f"{self.name} ({self.user_name})"
@@ -49,14 +51,12 @@ class Leave(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leaves')
     LEAVE_TYPES = [
-        ('Annual', 'Annual'),
         ('Sick', 'Sick'),
         ('Maternity', 'Maternity'),
         ('Paternity', 'Paternity'),
         ('Other', 'Other'),
     ]
     leave_type = models.CharField(max_length=100, choices=LEAVE_TYPES)
-    leave_date = models.DateField()
     leave_from = models.DateField()
     leave_to = models.DateField()
     STATUS_CHOICES = [
@@ -74,9 +74,6 @@ class Leave(models.Model):
 
     def __str__(self):
         return f"{self.user.name} - {self.leave_type} - {self.status}"
-    
-
-        
         
 class Attendance(models.Model):
     id = models.AutoField(primary_key=True)
@@ -84,8 +81,8 @@ class Attendance(models.Model):
     date = models.DateField(default=date.today)
     punch_in_time = models.TimeField(null=True, blank=True)
     punch_out_time = models.TimeField(null=True, blank=True)
-    status = models.CharField(max_length=10, choices=[('Present', 'Present'), ('Absent', 'Absent')])
-    total_hours_day = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # Hours with decimals
+    status = models.CharField(max_length=10, choices=[('Present', 'Present'), ('Absent', 'Absent'), ('Half-day', 'Half-day')])
+    total_hours_day = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     total_hours_month = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     total_hours_week = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     total_hours_year = models.DecimalField(max_digits=5, decimal_places=2, default=0)

@@ -12,6 +12,7 @@ from django.db.models import Sum
 
 
 class PunchInOutView(APIView):
+
     """
     View for users to punch in and punch out.
     """
@@ -55,18 +56,14 @@ class PunchInOutView(APIView):
 
         return Response({"message": "You have already punched out today."})
 
-
-class AttendanceStatsView(APIView):
-    """
-    View for fetching user attendance statistics by user ID.
-    """
-    def get(self, request , user_id):
         
       
-        
+      
+class AttendanceStatsView(APIView):
+  
+     def get(self, request, user_id):
         # Validate user existence
         try:
-            
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             raise NotFound({"message": "User not found."})
@@ -88,6 +85,9 @@ class AttendanceStatsView(APIView):
 
         overtime = max(0, total_hours_month - 160)  # Assuming 160 working hours per month
 
+        # Retrieve date-wise punch-in and punch-out times
+        attendance_records = Attendance.objects.filter(user=user).values('date', 'punch_in_time', 'punch_out_time')
+
         # Return attendance stats
         return Response({
             "user_id": user.id,
@@ -95,5 +95,6 @@ class AttendanceStatsView(APIView):
             "total_hours_month": total_hours_month,
             "total_hours_week": total_hours_week,
             "total_hours_year": total_hours_year,
-            "overtime_hours": overtime
-        }, status=200)
+            "overtime_hours": overtime,
+            "attendance_records": list(attendance_records)
+        }, status=status.HTTP_200_OK)
