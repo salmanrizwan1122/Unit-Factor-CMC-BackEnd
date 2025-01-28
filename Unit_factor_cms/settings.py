@@ -38,9 +38,8 @@ INSTALLED_APPS = [
     'projectsapi',
     'authapis',
    'attendenceapis',
-    'leavesapis'
-    # 'rest_framework.authtoken'
-
+    'leavesapis',
+    'tasksapis'
 ]
 
 

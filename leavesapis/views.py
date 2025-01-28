@@ -121,9 +121,6 @@ class ApproveRejectLeaveView(APIView):
             "approved_time": leave.approved_time,
             
         }, status=status.HTTP_200_OK)
-    
-
-
 class GetAllLeavesView(APIView):
     """
     View to get all leave records.

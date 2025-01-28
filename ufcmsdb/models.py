@@ -117,6 +117,30 @@ class Project(models.Model):
         return self.name
 
 
+class Task(models.Model):
+    id = models.AutoField(primary_key=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
+    name = models.CharField(max_length=200)  # Task name
+    description = models.TextField(null=True, blank=True)  # Task description (optional)
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tasks')  # Task assigned to
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('In Progress', 'In Progress'),
+        ('Completed', 'Completed'),
+    ]
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='Pending')  # Task status
+    PRIORITY_CHOICES = [
+        ('Low', 'Low'),
+        ('Medium', 'Medium'),
+        ('High', 'High'),
+    ]
+    priority = models.CharField(max_length=100, choices=PRIORITY_CHOICES, default='Medium')  # Task priority
+    due_date = models.DateField(null=True, blank=True)  # Task due date
+    created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for task creation
+    updated_at = models.DateTimeField(auto_now=True)  # Timestamp for last update
+
+    def __str__(self):
+        return self.name
 
 class Permission(models.Model):
     id = models.AutoField(primary_key=True)

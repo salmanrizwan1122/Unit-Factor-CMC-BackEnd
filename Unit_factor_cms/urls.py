@@ -12,5 +12,7 @@ urlpatterns = [
     path('auth/api/', include('authapis.urls')),
     path('project/api/', include('projectsapi.urls')),  
     path('attendence/api/', include('attendenceapis.urls')),
-    path('leave/api/', include('leavesapis.urls'))
+    path('leave/api/', include('leavesapis.urls')),
+    path('task/api/', include('tasksapis.urls'))
+
 ]
