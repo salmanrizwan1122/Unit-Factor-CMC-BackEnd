@@ -138,6 +138,8 @@ class Task(models.Model):
     due_date = models.DateField(null=True, blank=True)  # Task due date
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for task creation
     updated_at = models.DateTimeField(auto_now=True)  # Timestamp for last update
+    updated_by = models.ForeignKey(User, related_name='updated_tasks', on_delete=models.SET_NULL, null=True, blank=True)  # Task updated by
+
 
     def __str__(self):
         return self.name

@@ -93,3 +93,47 @@ class GetAllTasksView(APIView):
             'status', 'priority', 'due_date', 'created_at', 'updated_at'
         )
         return Response({"tasks": list(tasks)}, status=status.HTTP_200_OK)
+    
+
+
+class DeleteTaskView(APIView):
+    
+    def delete(self, request, task_id):
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            raise NotFound({"message": "Task not found."})
+
+        task.delete()
+        return Response({"message": "Task deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    
+
+
+
+class UpdateTaskStatusView(APIView):
+    """
+    View to update the status of a task.
+    """
+    def post(self, request):
+        task_id = request.data.get('task_id')
+        new_status = request.data.get('status')
+        updated_by_id = request.data.get('updated_by')
+
+        if not task_id or not new_status or not updated_by_id:
+            return Response({"message": "Task ID, status, and updated by ID are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            raise NotFound({"message": "Task not found."})
+
+        try:
+            updated_by = User.objects.get(id=updated_by_id)
+        except User.DoesNotExist:
+            return Response({"message": "Invalid Updated By ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+        task.status = new_status
+        task.updated_by = updated_by
+        task.save()
+
+        return Response({"message": "Task status updated successfully, updated by {}.".format(updated_by.user_name)}, status=status.HTTP_200_OK)
