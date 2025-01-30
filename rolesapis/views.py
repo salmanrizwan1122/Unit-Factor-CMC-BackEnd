@@ -178,6 +178,7 @@ class DeleteRoleView(APIView):
 
 
 class GetAllRolesView(APIView):
+    
     def get(self, request, *args, **kwargs):
         try:
             # Fetch all roles
