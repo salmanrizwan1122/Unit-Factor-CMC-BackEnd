@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from ufcmsdb.models import Task, Project, User
+from ufcmsdb.models import Task, Project, CustomUser
 from rest_framework.exceptions import NotFound
 from datetime import datetime
 

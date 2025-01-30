@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils.timezone import now
 from datetime import timedelta
-from ufcmsdb.models import Attendance , User
+from ufcmsdb.models import Attendance , CustomUser
 from datetime import datetime, date
 from decimal import Decimal
 from django.utils.timezone import localtime, now  ,activate

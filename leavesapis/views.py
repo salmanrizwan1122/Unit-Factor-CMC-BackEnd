@@ -5,7 +5,7 @@ from django.utils.timezone import now, activate
 from datetime import datetime
 from datetime import timedelta, date 
 from rest_framework.exceptions import NotFound
-from ufcmsdb.models import Leave, User  # Adjust the import to match your project structure
+from ufcmsdb.models import Leave, CustomUser  # Adjust the import to match your project structure
 
 class ApplyLeaveView(APIView):
     """

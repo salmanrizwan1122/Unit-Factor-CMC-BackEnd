@@ -1,5 +1,6 @@
 from django.db import models
 from datetime import date
+from django.contrib.auth.models import AbstractUser
 
 class Role(models.Model):
     id = models.AutoField(primary_key=True)
@@ -25,31 +26,25 @@ class Designation(models.Model):
         return self.name
 
 
-class User(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=200)
-    age = models.IntegerField()
-    address = models.CharField(max_length=200)
-    email = models.EmailField(unique=True)
-    password = models.CharField(max_length=200)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE)
-    designation = models.ForeignKey(Designation, on_delete=models.CASCADE)
-    role = models.ManyToManyField(Role, related_name='users') 
-    cnicno = models.BigIntegerField() 
+class CustomUser(AbstractUser):
+    age = models.IntegerField( null=True)
+    address = models.CharField(max_length=200 ,null=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE , null=True)
+    designation = models.ForeignKey(Designation, on_delete=models.CASCADE , null=True)
+    role = models.ManyToManyField(Role, related_name='users', null=True) 
+    cnicno = models.BigIntegerField(null=True) 
     profile_pic = models.ImageField(upload_to='profile_pic/', null=True, blank=True)
-    joining_date = models.DateField(default=date.today)
-    user_name = models.CharField(max_length=150, unique=True)  # New unique username field
     monthly_leave_balance = models.IntegerField(default=2)  
     yearly_leave_balance = models.IntegerField(default=24) 
+    created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_users')  # Track the creator
 
     def __str__(self):
-         return f"{self.name} ({self.user_name})"
-
+        return self.username
 
 
 class Leave(models.Model):
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leaves')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='leaves')
     LEAVE_TYPES = [
         ('Sick', 'Sick'),
         ('Maternity', 'Maternity'),
@@ -77,7 +72,7 @@ class Leave(models.Model):
         
 class Attendance(models.Model):
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     date = models.DateField(default=date.today)
     punch_in_time = models.TimeField(null=True, blank=True)
     punch_out_time = models.TimeField(null=True, blank=True)
@@ -95,7 +90,7 @@ class Expense(models.Model):
     date = models.DateField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=200)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     expense_slip = models.ImageField(upload_to='expense_slips/', null=True, blank=True)
     
@@ -106,8 +101,8 @@ class Project(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)  # Project name
     deadline = models.DateField()  # Project deadline
-    leader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='led_projects')  # Project leader
-    team_members = models.ManyToManyField(User, related_name='projects')  # All team members
+    leader = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='led_projects')  # Project leader
+    team_members = models.ManyToManyField(CustomUser, related_name='projects')  # All team members
     total_tasks = models.IntegerField(default=0)  # Total number of tasks in the project
     description = models.TextField(null=True, blank=True)  # Project description (optional)
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for project creation
@@ -122,7 +117,7 @@ class Task(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
     name = models.CharField(max_length=200)  # Task name
     description = models.TextField(null=True, blank=True)  # Task description (optional)
-    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tasks')  # Task assigned to
+    assigned_to = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='tasks')  # Task assigned to
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
         ('In Progress', 'In Progress'),
@@ -138,7 +133,7 @@ class Task(models.Model):
     due_date = models.DateField(null=True, blank=True)  # Task due date
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for task creation
     updated_at = models.DateTimeField(auto_now=True)  # Timestamp for last update
-    updated_by = models.ForeignKey(User, related_name='updated_tasks', on_delete=models.SET_NULL, null=True, blank=True)  # Task updated by
+    updated_by = models.ForeignKey(CustomUser, related_name='updated_tasks', on_delete=models.SET_NULL, null=True, blank=True)  # Task updated by
 
 
     def __str__(self):

@@ -1,16 +1,35 @@
-from django.shortcuts import render
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.views import View
-from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from ufcmsdb.models import Role, Permission
 import json
+import logging
 
+logger = logging.getLogger(__name__)
 
+@method_decorator(csrf_exempt, name='dispatch')
+class AddRoleView(APIView):
+    # authentication_classes = [TokenAuthentication]
+    # permission_classes = [IsAuthenticated]
 
-class AddRoleView(View):
     def post(self, request):
         try:
+            # Print the Authorization header
+            auth_header = request.headers.get('Authorization', None)
+            logger.info(f"Authorization header: {auth_header}")
+
+            # Authenticate the request
+            user = request.user
+            logger.info(f"User object: {user}")
+            logger.info(f"User authenticated: {user.is_authenticated}")
+
+            if not user.is_authenticated:
+                logger.error("User not authenticated")
+                return Response({"error": "Authentication required"}, status=401)
+
             # Parse request body
             data = json.loads(request.body)
             name = data.get("name")
@@ -18,10 +37,10 @@ class AddRoleView(View):
 
             # Validate role name
             if not name:
-                return JsonResponse({"error": "Role name is required"}, status=400)
+                return Response({"error": "Role name is required"}, status=400)
 
             if not isinstance(module_permissions, list):
-                return JsonResponse({"error": "Permissions must be a list"}, status=400)
+                return Response({"error": "Permissions must be a list"}, status=400)
 
             # Validate and collect permissions
             invalid_permissions = []
@@ -32,7 +51,7 @@ class AddRoleView(View):
                 actions = module_data.get("actions", [])
 
                 if not module or not isinstance(actions, list):
-                    return JsonResponse(
+                    return Response(
                         {"error": "Each permission must include a 'module' and a list of 'actions'"},
                         status=400
                     )
@@ -46,7 +65,7 @@ class AddRoleView(View):
 
             # Handle invalid permissions
             if invalid_permissions:
-                return JsonResponse(
+                return Response(
                     {"error": "Invalid permissions provided", "details": invalid_permissions},
                     status=400
                 )
@@ -55,13 +74,20 @@ class AddRoleView(View):
             role = Role.objects.create(name=name)
             role.permissions.set(Permission.objects.filter(id__in=valid_permissions))
 
-            return JsonResponse({"message": "Role created successfully", "role_id": role.id}, status=201)
+            # Track the creator
+            creator = user
+            logger.info(f"Role '{name}' created by: {creator.username}")
+
+            return Response({"message": "Role created successfully", "role_id": role.id}, status=201)
 
         except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+            return Response({"error": "Invalid JSON format"}, status=400)
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-class EditRoleView(View):
+            logger.error(f"Error: {str(e)}")
+            return Response({"error": str(e)}, status=500)
+
+
+class EditRoleView(APIView):
     def post(self, request, *args, **kwargs):
         try:
             # Get role ID from URL parameters
@@ -129,7 +155,7 @@ class EditRoleView(View):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-class DeleteRoleView(View):
+class DeleteRoleView(APIView):
     def delete(self, request, *args, **kwargs):
         try:
             # Get role ID from URL parameters
@@ -151,7 +177,7 @@ class DeleteRoleView(View):
             return JsonResponse({"error": str(e)}, status=500)
 
 
-class GetAllRolesView(View):
+class GetAllRolesView(APIView):
     def get(self, request, *args, **kwargs):
         try:
             # Fetch all roles

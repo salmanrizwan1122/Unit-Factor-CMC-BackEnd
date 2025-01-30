@@ -1,71 +1,94 @@
-from django.http import JsonResponse
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
-from ufcmsdb.models import User, Department, Designation, Role, Project
-import json
-from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth.hashers import make_password
+from django.http import JsonResponse
 from django.db.models import Prefetch
-# Utility function to hash passwords
-def hash_password(raw_password):
-    return make_password(raw_password)
+import json
+import logging
+from ufcmsdb.models import CustomUser, Department, Designation, Role ,Project
+from django.contrib.auth.hashers import make_password
 
+logger = logging.getLogger(__name__)
 
 class UserCreateView(APIView):
-    print("inside user create view")
-    
-   
-
-    
-    print(User.objects.filter(id=13).exists())
+    """
+    Handle user creation and generate token along with user details.
+    Only authenticated users (with a valid token) can create new users.
+    Track the creator of the user.
+    """
+    authentication_classes = [TokenAuthentication]  # Require token authentication
+    permission_classes = [IsAuthenticated]  # Only authenticated users can create users
 
     def post(self, request):
-        print("inside user create ")
-        print(request.auth)
         try:
+            # Log the incoming request headers and body for debugging
+            logger.info(f"Incoming request headers: {request.headers}")
+            logger.info(f"Incoming request body: {request.body}")
+
+            # Parse the request body
             data = json.loads(request.body)
-            required_fields = ['name', 'email', 'password', 'age', 'address', 'department_id', 'designation_id', 'cnicno', 'role_id']
+
+            # Validate required fields
+            required_fields = [
+                'first_name', 'last_name', 'email', 'password', 'age', 'address',
+                'department_id', 'designation_id', 'cnicno', 'role_id', 'username'
+            ]
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({'error': f'{field} is required'}, status=400)
 
+            # Validate department
             department = Department.objects.filter(id=data['department_id']).first()
             if not department:
                 return JsonResponse({'error': 'Invalid department ID'}, status=400)
 
+            # Validate designation
             designation = Designation.objects.filter(id=data['designation_id']).first()
             if not designation:
                 return JsonResponse({'error': 'Invalid designation ID'}, status=400)
 
+            # Validate role
             role = Role.objects.filter(id=data['role_id']).first()
             if not role:
                 return JsonResponse({'error': 'Invalid role ID'}, status=400)
 
-            if User.objects.filter(email=data['email']).exists():
+            # Check if email already exists
+            if CustomUser.objects.filter(email=data['email']).exists():
                 return JsonResponse({'error': 'Email already exists'}, status=400)
 
-            user = User.objects.create(
-                name=data['name'],
+            # Check if username already exists
+            if CustomUser.objects.filter(username=data['username']).exists():
+                return JsonResponse({'error': 'Username already exists'}, status=400)
+
+            # Create the user
+            user = CustomUser.objects.create(
+                first_name=data['first_name'],
+                last_name=data['last_name'],
                 email=data['email'],
                 age=data['age'],
                 address=data['address'],
                 department=department,
                 designation=designation,
-                password=hash_password(data['password']),
+                password=make_password(data['password']),  # Hash the password
                 cnicno=data['cnicno'],
-                user_name = data['user_name']
+                username=data['username'],  # Use 'user_name' from the request
+                created_by=request.user  # Track the creator
             )
 
+            # Assign the role to the user
             user.role.set([role])
 
-            # Track the user who performed the action
-        
+            # Log the created user details and the creator
+            logger.info(f"User '{user.username}' created by: '{request.user.username}'")
 
-            return JsonResponse({
+            # Prepare the response data
+            response_data = {
                 'message': 'User created successfully',
                 'user_id': user.id,
-             
+                'created_by': request.user.username,  # Include the creator's username
                 'user_data': {
-                    'Name': user.name,
+                    'Name': f"{user.first_name} {user.last_name}",  # Construct full name
                     'Email': user.email,
                     'Age': user.age,
                     'Address': user.address,
@@ -74,22 +97,20 @@ class UserCreateView(APIView):
                     'CNIC No': user.cnicno,
                     'Role': role.name
                 }
-            }, status=201)
+            }
+            return JsonResponse(response_data, status=201)
 
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
         except Exception as e:
+            logger.error(f"Error creating user: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
-
-
-
-
 class GetUserView(APIView):
     def get(self, request, user_id=None):
         try:
             if user_id:
                 # Retrieve a single user with related data
-                user = User.objects.prefetch_related(
+                user = CustomUser.objects.prefetch_related(
                     'role', 'department', 'designation', 
                     'projects',  # Projects where the user is a team member
                     Prefetch('led_projects', queryset=Project.objects.prefetch_related('team_members'))  # Projects the user leads
@@ -104,7 +125,7 @@ class GetUserView(APIView):
                         'total_tasks': project.total_tasks,
                         'description': project.description,
                         'team_members': [
-                            {'id': member.id, 'name': member.name}
+                            {'id': member.id, 'name': f"{member.first_name} {member.last_name}"}
                             for member in project.team_members.all()
                         ]
                     }
@@ -121,7 +142,7 @@ class GetUserView(APIView):
                         'description': project.description,
                         'leader': {
                             'id': project.leader.id,
-                            'name': project.leader.name
+                            'name': f"{project.leader.first_name} {project.leader.last_name}"
                         } if project.leader else None
                     }
                     for project in user.projects.all()
@@ -129,21 +150,25 @@ class GetUserView(APIView):
 
                 return JsonResponse({
                     'id': user.id,
-                    'name': user.name,
+                    'name': f"{user.first_name} {user.last_name}",  # Construct full name
                     'email': user.email,
                     'age': user.age,
                     'address': user.address,
-                    'department': {'id': user.department.id, 'name': user.department.name},
-                    'designation': {'id': user.designation.id, 'name': user.designation.name},
+                    'department': {'id': user.department.id, 'name': user.department.name} if user.department else None,
+                    'designation': {'id': user.designation.id, 'name': user.designation.name} if user.designation else None,
                     'roles': [{'id': role.id, 'name': role.name} for role in user.role.all()],
                     'cnicno': user.cnicno,
-                    'team_projects': team_projects,
-                    'led_projects': led_projects
+                    'created_by': {
+                            'id': user.created_by.id,
+                            'name': f"{user.created_by.first_name} {user.created_by.last_name}"
+                        } if user.created_by else None,
+                    'team_projects': team_projects,  # Will be an empty list if no projects
+                    'led_projects': led_projects  # Will be an empty list if no projects
                 }, status=200)
 
             else:
                 # Retrieve all users with related data
-                users = User.objects.prefetch_related(
+                users = CustomUser.objects.prefetch_related(
                     'role', 'department', 'designation', 
                     'projects',  # Projects where the user is a team member
                     Prefetch('led_projects', queryset=Project.objects.prefetch_related('team_members'))  # Projects the user leads
@@ -160,7 +185,7 @@ class GetUserView(APIView):
                             'total_tasks': project.total_tasks,
                             'description': project.description,
                             'team_members': [
-                                {'id': member.id, 'name': member.name}
+                                {'id': member.id, 'name': f"{member.first_name} {member.last_name}"}
                                 for member in project.team_members.all()
                             ]
                         }
@@ -177,7 +202,7 @@ class GetUserView(APIView):
                             'description': project.description,
                             'leader': {
                                 'id': project.leader.id,
-                                'name': project.leader.name
+                                'name': f"{project.leader.first_name} {project.leader.last_name}"
                             } if project.leader else None
                         }
                         for project in user.projects.all()
@@ -185,44 +210,46 @@ class GetUserView(APIView):
 
                     users_data.append({
                         'id': user.id,
-                        'name': user.name,
+                        'name': f"{user.first_name} {user.last_name}",  # Construct full name
                         'email': user.email,
                         'age': user.age,
                         'address': user.address,
-                        'department': {'id': user.department.id, 'name': user.department.name},
-                        'designation': {'id': user.designation.id, 'name': user.designation.name},
+                        'department': {'id': user.department.id, 'name': user.department.name} if user.department else None,
+                        'designation': {'id': user.designation.id, 'name': user.designation.name} if user.designation else None,
                         'roles': [{'id': role.id, 'name': role.name} for role in user.role.all()],
                         'cnicno': user.cnicno,
-                        'team_projects': team_projects,
-                        'led_projects': led_projects
+                        'created_by': {
+                            'id': user.created_by.id,
+                            'name': f"{user.created_by.first_name} {user.created_by.last_name}"
+                        } if user.created_by else None,
+                        'team_projects': team_projects,  # Will be an empty list if no projects
+                        'led_projects': led_projects  # Will be an empty list if no projects
                     })
 
                 return JsonResponse({'users': users_data}, status=200)
 
-        except User.DoesNotExist:
+        except CustomUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-class UpdateUserView(APIView):
-   
-   
 
+class UpdateUserView(APIView):
     def post(self, request, user_id):
         try:
             data = json.loads(request.body)
-            user = User.objects.get(id=user_id)
+            user = CustomUser.objects.get(id=user_id)
 
-         
-
-            if 'name' in data:
-                user.name = data['name']
+            if 'first_name' in data:
+                user.first_name = data['first_name']
+            if 'last_name' in data:
+                user.last_name = data['last_name']
             if 'email' in data:
-                if User.objects.filter(email=data['email']).exclude(id=user_id).exists():
+                if CustomUser.objects.filter(email=data['email']).exclude(id=user_id).exists():
                     return JsonResponse({'error': 'Email already exists'}, status=400)
                 user.email = data['email']
             if 'password' in data:
-                user.password = hash_password(data['password'])
+                user.set_password(data['password'])  # Hash the password
             if 'age' in data:
                 user.age = data['age']
             if 'address' in data:
@@ -249,16 +276,14 @@ class UpdateUserView(APIView):
 
             return JsonResponse({
                 'message': 'User updated successfully',
-              
             }, status=200)
 
-        except User.DoesNotExist:
+        except CustomUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 
 class DeleteUserView(APIView):
     """Delete an existing user (Token Required)."""
@@ -267,13 +292,13 @@ class DeleteUserView(APIView):
     def delete(self, request, user_id):
         try:
            
-            user = User.objects.get(id=user_id)
+            user = CustomUser.objects.get(id=user_id)
             user.delete()
             return JsonResponse({
                 'message': 'User deleted successfully',
                 
             }, status=200)
-        except User.DoesNotExist:
+        except CustomUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

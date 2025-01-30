@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.authtoken.views import obtain_auth_token
 
 
 urlpatterns = [
@@ -13,6 +14,6 @@ urlpatterns = [
     path('project/api/', include('projectsapi.urls')),  
     path('attendence/api/', include('attendenceapis.urls')),
     path('leave/api/', include('leavesapis.urls')),
-    path('task/api/', include('tasksapis.urls'))
-
+    path('task/api/', include('tasksapis.urls')),
+    path('api-token-auth/', obtain_auth_token),
 ]

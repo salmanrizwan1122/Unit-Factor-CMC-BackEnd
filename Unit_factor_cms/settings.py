@@ -1,8 +1,7 @@
 from pathlib import Path
 from decouple import config  # Use the `config` function
 from datetime import timedelta
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+import datetime# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
@@ -19,7 +18,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
-
+AUTH_USER_MODEL = "ufcmsdb.CustomUser"
 
 INSTALLED_APPS = [
     "ufcmsdb",
@@ -39,7 +38,9 @@ INSTALLED_APPS = [
     'authapis',
    'attendenceapis',
     'leavesapis',
-    'tasksapis'
+    'tasksapis',
+    'rest_framework.authtoken',
+    'corsheaders',
 ]
 
 
@@ -53,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'Unit_factor_cms.urls'
 
@@ -71,14 +73,20 @@ TEMPLATES = [
         },
     },
 ]
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': [
-#         'rest_framework.authentication.TokenAuthentication',
-#     ],
-#     'DEFAULT_PERMISSION_CLASSES': [
-#         'rest_framework.permissions.IsAuthenticated',
-#     ],
-# }
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+
+# JWT Authentication settings
+
+
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Karachi'  # Correct time zone
 USE_I18N = True

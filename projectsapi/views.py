@@ -3,7 +3,7 @@ from django.views import View
 from django.http import JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.dateparse import parse_date
-from ufcmsdb.models import Project, User
+from ufcmsdb.models import Project, CustomUser
 
 class CreateProjectView(View):
     def post(self, request):

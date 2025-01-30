@@ -1,11 +1,14 @@
 import logging
 from rest_framework.views import APIView
+import pdb ;
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework import status
 from django.contrib.auth.hashers import check_password
-from ufcmsdb.models import User  # Ensure your custom user model is imported
+
+from ufcmsdb.models import CustomUser  # Ensure your custom user model is imported
 from rest_framework.authtoken.models import Token  # Import Token model
+from django.contrib.auth.hashers import check_password
 
 logger = logging.getLogger(__name__)
 
@@ -18,27 +21,27 @@ class LoginView(APIView):
 
     def post(self, request):
         # Get credentials from request
-        user_name = request.data.get('user_name')
-        print(user_name)
+        email = request.data.get('email')
         raw_password = request.data.get('password')
+       
 
-        if not user_name or not raw_password:
+        if not email or not raw_password:
             return Response(
                 {"error": "Both user_name and password are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            user = User.objects.get(user_name=user_name)
-        
-        except User.DoesNotExist:
+            # Ensure you are getting the User instance
+            # pdb.set_trace()
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
             return Response(
                 {"error": "Invalid credentials"}, 
                 status=status.HTTP_403_FORBIDDEN
             )
 
         if check_password(raw_password, user.password):
-       
-            # token, created = Token.objects.get_or_create(user=user)
+            token, created = Token.objects.get_or_create(user=user)  # Create or get token for user
             roles = user.role.all()
             designation = user.designation
             department = user.department
@@ -46,20 +49,10 @@ class LoginView(APIView):
             roles_data = [{"id": role.id, "name": role.name} for role in roles]
             designation_data = {"id": designation.id, "name": designation.name} if designation else None
             department_data = {"id": department.id, "name": department.name} if department else None
+
             response_data = {
-                "user": {
-                    "id": user.id,
-                    "name": user.name,
-                    "email": user.email,
-                    "roles": roles_data,
-                    "designation": designation_data,
-                    "department": department_data,
-                    "age": user.age,
-                    "address": user.address,
-                    "cnic": user.cnicno,  # Corrected from "cinic"
-                    "joining_date": user.joining_date,
-                },
-                # "token": token.key,  
+              
+                "token": token.key,  # Include the token in the response
             }
             return Response(response_data, status=status.HTTP_200_OK)
         else:
