@@ -232,8 +232,6 @@ class GetUserView(APIView):
             return JsonResponse({'error': 'User not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
-
 class UpdateUserView(APIView):
     def post(self, request, user_id):
         try:
@@ -284,7 +282,6 @@ class UpdateUserView(APIView):
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 class DeleteUserView(APIView):
     """Delete an existing user (Token Required)."""
   

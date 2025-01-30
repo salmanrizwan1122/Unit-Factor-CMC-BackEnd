@@ -107,7 +107,7 @@ class Project(models.Model):
     description = models.TextField(null=True, blank=True)  # Project description (optional)
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for project creation
     updated_at = models.DateTimeField(auto_now=True)  # Timestamp for last update
-
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')  # Track the creator
     def __str__(self):
         return self.name
 
