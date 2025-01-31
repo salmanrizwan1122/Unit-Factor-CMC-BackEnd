@@ -215,6 +215,7 @@ class DeleteProjectView(APIView):
             return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 
+
 class UpdateProjectView(APIView):
     def post(self, request, project_id=None):
         try:
