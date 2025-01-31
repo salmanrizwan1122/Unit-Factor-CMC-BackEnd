@@ -216,6 +216,9 @@ class DeleteProjectView(APIView):
 
 
 
+
+
+
 class UpdateProjectView(APIView):
     def post(self, request, project_id=None):
         try:
