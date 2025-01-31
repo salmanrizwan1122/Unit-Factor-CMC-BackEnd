@@ -5,6 +5,8 @@ from rest_framework.authentication import TokenAuthentication
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from ufcmsdb.models import Role, Permission
+from django.http import JsonResponse
+
 import json
 import logging
 

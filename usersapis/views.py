@@ -32,26 +32,30 @@ class UserCreateView(APIView):
             # Validate required fields
             required_fields = [
                 'first_name', 'last_name', 'email', 'password', 'age', 'address',
-                'department_id', 'designation_id', 'cnicno', 'role_id', 'username'
+                'cnicno', 'role_id', 'username'
             ]
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({'error': f'{field} is required'}, status=400)
 
-            # Validate department
-            department = Department.objects.filter(id=data['department_id']).first()
-            if not department:
-                return JsonResponse({'error': 'Invalid department ID'}, status=400)
-
-            # Validate designation
-            designation = Designation.objects.filter(id=data['designation_id']).first()
-            if not designation:
-                return JsonResponse({'error': 'Invalid designation ID'}, status=400)
-
             # Validate role
             role = Role.objects.filter(id=data['role_id']).first()
             if not role:
                 return JsonResponse({'error': 'Invalid role ID'}, status=400)
+
+            # Admin users don't require a department or designation
+            department = None
+            designation = None
+
+            if data.get('department_id'):  # Check if department_id is provided
+                department = Department.objects.filter(id=data['department_id']).first()
+                if not department:
+                    return JsonResponse({'error': 'Invalid department ID'}, status=400)
+
+            if data.get('designation_id'):  # Check if designation_id is provided
+                designation = Designation.objects.filter(id=data['designation_id']).first()
+                if not designation:
+                    return JsonResponse({'error': 'Invalid designation ID'}, status=400)
 
             # Check if email already exists
             if CustomUser.objects.filter(email=data['email']).exists():
@@ -68,11 +72,11 @@ class UserCreateView(APIView):
                 email=data['email'],
                 age=data['age'],
                 address=data['address'],
-                department=department,
-                designation=designation,
+                department=department,  # Can be None for admin
+                designation=designation,  # Can be None for admin
                 password=make_password(data['password']),  # Hash the password
                 cnicno=data['cnicno'],
-                username=data['username'],  # Use 'user_name' from the request
+                username=data['username'],
                 created_by=request.user  # Track the creator
             )
 
@@ -92,8 +96,8 @@ class UserCreateView(APIView):
                     'Email': user.email,
                     'Age': user.age,
                     'Address': user.address,
-                    'Department': department.name,
-                    'Designation': designation.name,
+                    'Department': department.name if department else None,
+                    'Designation': designation.name if designation else None,
                     'CNIC No': user.cnicno,
                     'Role': role.name
                 }
@@ -105,6 +109,7 @@ class UserCreateView(APIView):
         except Exception as e:
             logger.error(f"Error creating user: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
+
 class GetUserView(APIView):
     def get(self, request, user_id=None):
         try:
@@ -232,6 +237,8 @@ class GetUserView(APIView):
             return JsonResponse({'error': 'User not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+
 class UpdateUserView(APIView):
     def post(self, request, user_id):
         try:

@@ -8,16 +8,23 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.dateparse import parse_date
 from ufcmsdb.models import Project, CustomUser
 from rest_framework.views import APIView
+def user_has_permission(user, action):
+    return user.role.filter(permissions__action=action, permissions__module="project_management").exists()
 
 class CreateProjectView(APIView):
-    authentication_classes = [TokenAuthentication]  # Require token authentication
-    permission_classes = [IsAuthenticated] 
+    authentication_classes = [TokenAuthentication]  
+    permission_classes = [IsAuthenticated]  
 
     def post(self, request):
-        try:
-            # Get the user from the token
-            user = request.user
+        user = request.user  # Get the authenticated user
 
+        # **Check if the user has permission to create a project**
+        has_permission = user.role.filter(permissions__action="create", permissions__module="projects").exists()
+
+        if not has_permission:
+            return JsonResponse({'error': 'You do not have permission to create a project.'}, status=403)
+
+        try:
             # Parse JSON payload
             try:
                 data = json.loads(request.body)
@@ -51,13 +58,12 @@ class CreateProjectView(APIView):
                 deadline=parsed_deadline,
                 leader=leader,
                 description=description,
-                created_by=user  # Assign the user who created the project
+                created_by=user
             )
 
             # Handle optional team members
             team_members_ids = data.get('team_members', [])
             if team_members_ids:
-                # Validate team members
                 team_members = CustomUser.objects.filter(id__in=team_members_ids)
                 if len(team_members) != len(team_members_ids):
                     return JsonResponse({'error': 'One or more team member IDs are invalid.'}, status=400)
@@ -70,7 +76,7 @@ class CreateProjectView(APIView):
                 'deadline': project.deadline,
                 'leader': {
                     'id': leader.id,
-                    'name': f"{leader.first_name} {leader.last_name}", 
+                    'name': f"{leader.first_name} {leader.last_name}",
                     'profile_pic': leader.profile_pic.url if leader.profile_pic else None
                 },
                 'team_members': [
@@ -86,17 +92,31 @@ class CreateProjectView(APIView):
             return JsonResponse({'message': 'Project created successfully.', 'project': response_data}, status=201)
 
         except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+        except Exception as e:
             return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
-class GetProjectDetailsView(View):
+
+
+# Function to check if the user has permission for a given action on the projects module
+
+
+
+class GetProjectDetailsView(APIView):
+    authentication_classes = [TokenAuthentication]  # Ensures authentication
+    permission_classes = [IsAuthenticated]  # Restricts access to authenticated users
+
     def get(self, request, project_id=None):
         try:
             if not project_id:
                 return JsonResponse({'error': 'Project ID is required.'}, status=400)
 
-            # Fetch the project details
+            user = request.user
+            if not user_has_permission(user, "view"):
+                return JsonResponse({'error': 'You do not have permission to view project details.'}, status=403)
+
             project = Project.objects.prefetch_related('team_members', 'leader').get(id=project_id)
 
-            # Construct response data
             response_data = {
                 'id': project.id,
                 'name': project.name,
@@ -107,36 +127,38 @@ class GetProjectDetailsView(View):
                 'updated_at': project.updated_at,
                 'leader': {
                     'id': project.leader.id,
-                    'name': project.leader.name,
+                    'name': f"{project.leader.first_name} {project.leader.last_name}",
                     'profile_pic': project.leader.profile_pic.url if project.leader.profile_pic else None
                 },
                 'team_members': [
                     {
                         'id': member.id,
-                        'name': f"{project.leader.first_name} {project.leader.last_name}",               
+                        'name': f"{member.first_name} {member.last_name}",
                         'profile_pic': member.profile_pic.url if member.profile_pic else None
                     }
                     for member in project.team_members.all()
                 ]
             }
-
             return JsonResponse({'project': response_data}, status=200)
 
         except ObjectDoesNotExist:
             return JsonResponse({'error': 'Project not found.'}, status=404)
         except Exception as e:
             return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+
 class GetAllProjectsView(APIView):
-    authentication_classes = [TokenAuthentication]  # Require token authentication
-    permission_classes = [IsAuthenticated]  # Require the user to be authenticated
+    authentication_classes = [TokenAuthentication]  
+    permission_classes = [IsAuthenticated]  
 
     def get(self, request):
         try:
-            # Fetch all projects
-            projects = Project.objects.prefetch_related('team_members', 'leader').all()
+            user = request.user
+            if not user_has_permission(user, "read"):
+                return Response({'error': 'You do not have permission to view projects.'}, status=403)
 
-            # Construct response data
+            projects = Project.objects.prefetch_related('team_members', 'leader').all()
             response_data = []
+
             for project in projects:
                 project_data = {
                     'id': project.id,
@@ -148,7 +170,7 @@ class GetAllProjectsView(APIView):
                     'updated_at': project.updated_at,
                     'leader': {
                         'id': project.leader.id,
-                        'name': f"{project.leader.first_name} {project.leader.last_name}",               
+                        'name': f"{project.leader.first_name} {project.leader.last_name}",
                         'profile_pic': project.leader.profile_pic.url if project.leader.profile_pic else None
                     },
                     'team_members': [
@@ -170,13 +192,18 @@ class GetAllProjectsView(APIView):
 
         except Exception as e:
             return Response({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+
+
 class DeleteProjectView(APIView):
     def delete(self, request, project_id=None):
         try:
             if not project_id:
                 return JsonResponse({'error': 'Project ID is required.'}, status=400)
 
-            # Fetch and delete the project
+            user = request.user
+            if not user_has_permission(user, "delete"):
+                return JsonResponse({'error': 'You do not have permission to delete projects.'}, status=403)
+
             try:
                 project = Project.objects.get(id=project_id)
                 project.delete()
@@ -186,25 +213,28 @@ class DeleteProjectView(APIView):
 
         except Exception as e:
             return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+
+
 class UpdateProjectView(APIView):
     def post(self, request, project_id=None):
         try:
             if not project_id:
                 return JsonResponse({'error': 'Project ID is required.'}, status=400)
 
-            # Parse JSON payload
+            user = request.user
+            if not user_has_permission(user, "update"):
+                return JsonResponse({'error': 'You do not have permission to update projects.'}, status=403)
+
             try:
                 data = json.loads(request.body)
             except json.JSONDecodeError:
                 return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
 
-            # Fetch the project to update
             try:
                 project = Project.objects.prefetch_related('team_members', 'leader').get(id=project_id)
             except ObjectDoesNotExist:
                 return JsonResponse({'error': 'Project not found.'}, status=404)
 
-            # Update project fields if provided
             if 'name' in data:
                 project.name = data['name']
             if 'deadline' in data:
@@ -221,7 +251,6 @@ class UpdateProjectView(APIView):
             if 'description' in data:
                 project.description = data['description']
 
-            # Handle optional team members
             if 'team_members' in data:
                 team_members_ids = data['team_members']
                 if team_members_ids:
@@ -230,10 +259,8 @@ class UpdateProjectView(APIView):
                         return JsonResponse({'error': 'One or more team member IDs are invalid.'}, status=400)
                     project.team_members.set(team_members)
 
-            # Save the updated project
             project.save()
 
-            # Construct response data
             response_data = {
                 'id': project.id,
                 'name': project.name,
@@ -244,13 +271,13 @@ class UpdateProjectView(APIView):
                 'updated_at': project.updated_at,
                 'leader': {
                     'id': project.leader.id,
-                    'name': f"{leader.first_name} {leader.last_name}", 
+                    'name': f"{project.leader.first_name} {project.leader.last_name}",
                     'profile_pic': project.leader.profile_pic.url if project.leader.profile_pic else None
                 },
                 'team_members': [
                     {
                         'id': member.id,
-                        'name': member.name,
+                        'name': f"{member.first_name} {member.last_name}",
                         'profile_pic': member.profile_pic.url if member.profile_pic else None
                     }
                     for member in project.team_members.all()
