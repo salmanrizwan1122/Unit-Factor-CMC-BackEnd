@@ -23,8 +23,8 @@ class ApplyLeaveView(APIView):
             return Response({"message": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            user = User.objects.get(id=user_id)  # Retrieve the user object
-        except User.DoesNotExist:
+            user = CustomUser.objects.get(id=user_id)  # Retrieve the user object
+        except CustomUser.DoesNotExist:
             return Response({"message": "Invalid User ID."}, status=status.HTTP_400_BAD_REQUEST)
 
         leave_from_date = datetime.strptime(leave_from, '%Y-%m-%d').date()
@@ -77,8 +77,8 @@ class ApproveRejectLeaveView(APIView):
             return Response({"message": "Invalid Leave ID."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            approver = User.objects.get(id=approved_by_id)  # Retrieve the approver user object
-        except User.DoesNotExist:
+            approver = CustomUser.objects.get(id=approved_by_id)  # Retrieve the approver user object
+        except CustomUser.DoesNotExist:
             return Response({"message": "Invalid Approver User ID."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Ensure action is either 'approve' or 'reject'
@@ -138,8 +138,8 @@ class UserLeaveRecordsView(APIView):
     def get(self, request, user_id):
         # Validate user existence
         try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
+            user = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
             raise NotFound({"message": "User not found."})
 
         leaves = Leave.objects.filter(user=user).values(
