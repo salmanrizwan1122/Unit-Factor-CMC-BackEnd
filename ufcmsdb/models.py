@@ -1,6 +1,8 @@
 from django.db import models
 from datetime import date
 from django.contrib.auth.models import AbstractUser
+import uuid
+from django.utils.timezone import now
 
 class Role(models.Model):
     id = models.AutoField(primary_key=True)
@@ -110,7 +112,15 @@ class Project(models.Model):
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')  # Track the creator
     def __str__(self):
         return self.name
+class PasswordResetOTP(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True)
+    otp = models.CharField(max_length=6)  # 6-digit OTP
+    created_at = models.DateTimeField(default=now)
+    is_verified = models.BooleanField(default=False)
 
+    def __str__(self):
+        return f"OTP for {self.email}"
 
 class Task(models.Model):
     id = models.AutoField(primary_key=True)

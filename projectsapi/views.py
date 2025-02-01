@@ -193,7 +193,6 @@ class GetAllProjectsView(APIView):
         except Exception as e:
             return Response({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
-
 class DeleteProjectView(APIView):
     def delete(self, request, project_id=None):
         try:
@@ -213,11 +212,6 @@ class DeleteProjectView(APIView):
 
         except Exception as e:
             return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
-
-
-
-
-
 
 class UpdateProjectView(APIView):
     def post(self, request, project_id=None):

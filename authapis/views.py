@@ -3,11 +3,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework import status
+from django.core.mail import send_mail
+from django.utils.timezone import now
 from django.contrib.auth.hashers import check_password
-from ufcmsdb.models import CustomUser, Project, Attendance, Leave
+from django.contrib.auth.hashers import make_password
+from ufcmsdb.models import CustomUser, Project, Attendance, Leave , PasswordResetOTP
 from rest_framework.authtoken.models import Token
 from datetime import date
 from django.db.models import Sum
+from django.contrib.auth.hashers import make_password
+from django.conf import settings  # Import settings to use email configuration
+import random  # Import random for OTP generation
+
 
 logger = logging.getLogger(__name__)
 
@@ -131,3 +138,68 @@ class LoginView(APIView):
                 {"error": "Invalid credentials"}, 
                 status=status.HTTP_403_FORBIDDEN
             )
+
+
+
+class ForgotPasswordView(APIView):
+    """
+    Handle forgot password requests by sending an OTP to the user's email.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Generate OTP
+        otp = random.randint(100000, 999999)
+        PasswordResetOTP.objects.update_or_create(
+        email=user.email,  # Use email instead of user
+        defaults={"otp": otp, "created_at": now()}
+)
+
+        # Send OTP via email
+        send_mail(
+            "Password Reset OTP",
+            f"Your OTP for password reset is {otp}. This OTP is valid for 10 minutes.",
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+
+        return Response({"message": "OTP has been sent to your email."}, status=status.HTTP_200_OK)
+
+class ResetPasswordView(APIView):
+    """
+    Handle OTP verification and password reset.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email")
+        otp = request.data.get("otp")
+        new_password = request.data.get("new_password")
+
+        if not email or not otp or not new_password:
+            return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = CustomUser.objects.get(email=email)
+            otp_record = PasswordResetOTP.objects.get(email=email, otp=otp)  # Use email instead of user
+        except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
+            return Response({"error": "Invalid OTP or email."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Reset password
+        user.password = make_password(new_password)
+        user.save()
+
+        # Delete OTP record after successful password reset
+        otp_record.delete()
+
+        return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
