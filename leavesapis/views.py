@@ -92,6 +92,7 @@ class ApproveRejectLeaveView(APIView):
             leave.approved_date = date.today()
             leave.approved_time = datetime.now().time()
             
+            
             # Deduct leave days from balances if not already deducted
             if leave.leave_days <= leave.user.monthly_leave_balance:
                 leave.user.monthly_leave_balance -= leave.leave_days
