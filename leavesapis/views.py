@@ -163,12 +163,12 @@ class GetAllLeavesView(APIView):
         user = request.user  # Get the authenticated user from the token
 
         # Check if the user has permission to view all leaves
-        has_permission = user.role.filter(permissions__action="view", permissions__module="leave").exists()
+        has_permission = user.role.filter(permissions__action="read", permissions__module="leave").exists()
         if not has_permission:
             return Response({"message": "You do not have permission to view all leave records."}, status=status.HTTP_403_FORBIDDEN)
 
         leaves = Leave.objects.all().values(
-            'id', 'user__user_name',  'user_id', 'leave_type', 'leave_from', 'leave_to', 'status', 'reason',
+            'id', 'user__username',  'user_id', 'leave_type', 'leave_from', 'leave_to', 'status', 'reason',
             'approved_by', 'approved_date', 'approved_time', 'leave_days'
         )
         return Response({"leaves": list(leaves)}, status=status.HTTP_200_OK)
@@ -184,7 +184,7 @@ class UserLeaveRecordsView(APIView):
         user = request.user  # Get the authenticated user from the token
 
         # Check if the user has permission to view leave records
-        has_permission = user.role.filter(permissions__action="view", permissions__module="leave").exists()
+        has_permission = user.role.filter(permissions__action="read", permissions__module="leave").exists()
         if not has_permission:
             return Response({"message": "You do not have permission to view leave records."}, status=status.HTTP_403_FORBIDDEN)
 
@@ -195,7 +195,7 @@ class UserLeaveRecordsView(APIView):
             raise NotFound({"message": "User not found."})
 
         # Ensure the user is viewing their own records or has permission to view others' records
-        if user.id != target_user.id and not user.role.filter(permissions__action="view_all", permissions__module="leave").exists():
+        if user.id != target_user.id and not user.role.filter(permissions__action="read", permissions__module="leave").exists():
             return Response({"message": "You do not have permission to view this user's leave records."}, status=status.HTTP_403_FORBIDDEN)
 
         leaves = Leave.objects.filter(user=target_user).values(
@@ -203,4 +203,4 @@ class UserLeaveRecordsView(APIView):
             'approved_by', 'approved_date', 'approved_time', 'leave_days'
         )
 
-        return Response({"user": target_user.user_name, "leaves": list(leaves)}, status=status.HTTP_200_OK)
+        return Response({"user": target_user.username, "leaves": list(leaves)}, status=status.HTTP_200_OK)

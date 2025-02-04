@@ -19,7 +19,7 @@ class CreateProjectView(APIView):
         user = request.user  # Get the authenticated user
 
         # **Check if the user has permission to create a project**
-        has_permission = user.role.filter(permissions__action="create", permissions__module="projects").exists()
+        has_permission = user.role.filter(permissions__action="create", permissions__module="project_management").exists()
 
         if not has_permission:
             return JsonResponse({'error': 'You do not have permission to create a project.'}, status=403)
@@ -98,7 +98,6 @@ class CreateProjectView(APIView):
             return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 
-# Function to check if the user has permission for a given action on the projects module
 
 
 
@@ -112,7 +111,7 @@ class GetProjectDetailsView(APIView):
                 return JsonResponse({'error': 'Project ID is required.'}, status=400)
 
             user = request.user
-            if not user_has_permission(user, "view"):
+            if not user_has_permission(user, "read"):
                 return JsonResponse({'error': 'You do not have permission to view project details.'}, status=403)
 
             project = Project.objects.prefetch_related('team_members', 'leader').get(id=project_id)
@@ -256,9 +255,7 @@ class UpdateProjectView(APIView):
                     if len(team_members) != len(team_members_ids):
                         return JsonResponse({'error': 'One or more team member IDs are invalid.'}, status=400)
                     project.team_members.set(team_members)
-
             project.save()
-
             response_data = {
                 'id': project.id,
                 'name': project.name,

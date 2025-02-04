@@ -27,8 +27,8 @@ class TaskCreateView(APIView):
             return Response({"message": "Invalid Project ID."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            assigned_to = User.objects.get(id=assigned_to_id)
-        except User.DoesNotExist:
+            assigned_to = CustomUser.objects.get(id=assigned_to_id)
+        except CustomUser.DoesNotExist:
             return Response({"message": "Invalid User ID for assignee."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate due date format
@@ -53,7 +53,7 @@ class TaskCreateView(APIView):
             "message": "Task created successfully.",
             "task_id": task.id,
             "task_name": task.name,
-            "assigned_to": task.assigned_to.user_name,
+            "assigned_to": task.assigned_to.username,
             "status": task.status,
             "priority": task.priority,
             "due_date": task.due_date
@@ -74,7 +74,7 @@ class GetTaskByIdView(APIView):
             "project_name": task.project.name,
             "name": task.name,
             "description": task.description,
-            "assigned_to": task.assigned_to.user_name if task.assigned_to else None,
+            "assigned_to": task.assigned_to.username if task.assigned_to else None,
             "status": task.status,
             "priority": task.priority,
             "due_date": task.due_date,
@@ -89,7 +89,7 @@ class GetAllTasksView(APIView):
     """
     def get(self, request):
         tasks = Task.objects.all().values(
-            'id', 'project__name', 'name', 'description', 'assigned_to__user_name', 
+            'id', 'project__name', 'name', 'description', 'assigned_to__username', 
             'status', 'priority', 'due_date', 'created_at', 'updated_at'
         )
         return Response({"tasks": list(tasks)}, status=status.HTTP_200_OK)
@@ -128,12 +128,12 @@ class UpdateTaskStatusView(APIView):
             raise NotFound({"message": "Task not found."})
 
         try:
-            updated_by = User.objects.get(id=updated_by_id)
-        except User.DoesNotExist:
+            updated_by = CustomUser.objects.get(id=updated_by_id)
+        except CustomUser.DoesNotExist:
             return Response({"message": "Invalid Updated By ID."}, status=status.HTTP_400_BAD_REQUEST)
 
         task.status = new_status
         task.updated_by = updated_by
         task.save()
 
-        return Response({"message": "Task status updated successfully, updated by {}.".format(updated_by.user_name)}, status=status.HTTP_200_OK)
+        return Response({"message": "Task status updated successfully, updated by {}.".format(updated_by.username)}, status=status.HTTP_200_OK)
