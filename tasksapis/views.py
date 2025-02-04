@@ -48,7 +48,6 @@ class TaskCreateView(APIView):
             due_date=due_date
         )
         task.save()
-
         return Response({
             "message": "Task created successfully.",
             "task_id": task.id,
