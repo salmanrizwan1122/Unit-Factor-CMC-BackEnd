@@ -75,10 +75,17 @@ class TaskCreateView(APIView):
 
 
 class GetTaskByIdView(APIView):
-    """
-    View to get a task by its ID.
-    """
+    
+
     def get(self, request, task_id):
+        user = request.user  # Get the authenticated user
+
+        # Check if the user has permission to read a task
+        has_permission = user.role.filter(permissions__action="read", permissions__module="task_management").exists()
+        
+        if not has_permission:
+            return JsonResponse({'error': 'You do not have permission to view this task.'}, status=403)
+
         try:
             task = Task.objects.get(id=task_id)
         except Task.DoesNotExist:
@@ -100,20 +107,36 @@ class GetTaskByIdView(APIView):
         return Response({"task": task_data}, status=status.HTTP_200_OK)
 
 class GetAllTasksView(APIView):
-    """
-    View to get all tasks.
-    """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
+        user = request.user  # Get the authenticated user
+
+        # Check if the user has permission to read tasks
+        has_permission = user.role.filter(permissions__action="read", permissions__module="task_management").exists()
+        
+        if not has_permission:
+            return JsonResponse({'error': 'You do not have permission to view tasks.'}, status=403)
+        
         tasks = Task.objects.all().values(
             'id', 'project__name', 'name', 'description', 'assigned_to__username', 
             'status', 'priority', 'due_date', 'created_at', 'updated_at'
         )
         return Response({"tasks": list(tasks)}, status=status.HTTP_200_OK)
-    
-
-
 class DeleteTaskView(APIView):
-    def delete(self, task_id):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, task_id):
+        user = request.user  # Get the authenticated user
+
+        # Check if the user has permission to delete a task
+        has_permission = user.role.filter(permissions__action="delete", permissions__module="task_management").exists()
+        
+        if not has_permission:
+            return JsonResponse({'error': 'You do not have permission to delete this task.'}, status=403)
+
         try:
             task = Task.objects.get(id=task_id)
         except Task.DoesNotExist:
@@ -121,15 +144,23 @@ class DeleteTaskView(APIView):
 
         task.delete()
         return Response({"message": "Task deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-    
-
-
 
 class UpdateTaskStatusView(APIView):
     """
     View to update the status of a task.
     """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
+        user = request.user  # Get the authenticated user
+
+        # Check if the user has permission to update a task
+        has_permission = user.role.filter(permissions__action="update", permissions__module="task_management").exists()
+        
+        if not has_permission:
+            return JsonResponse({'error': 'You do not have permission to update this task.'}, status=403)
+
         task_id = request.data.get('task_id')
         new_status = request.data.get('status')
         updated_by_id = request.data.get('updated_by')
@@ -152,3 +183,4 @@ class UpdateTaskStatusView(APIView):
         task.save()
 
         return Response({"message": "Task status updated successfully, updated by {}.".format(updated_by.username)}, status=status.HTTP_200_OK)
+
