@@ -4,15 +4,28 @@ from rest_framework import status
 from ufcmsdb.models import Task, Project, CustomUser
 from rest_framework.exceptions import NotFound
 from datetime import datetime
+from django.http import JsonResponse
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 class TaskCreateView(APIView):
-  
+    authentication_classes = [TokenAuthentication]  
+    permission_classes = [IsAuthenticated]  
+
     def post(self, request):
+        user = request.user  # Get the authenticated user
+
+        # Check if the user has permission to create a task
+        has_permission = user.role.filter(permissions__action="create", permissions__module="task_management").exists()
+        
+        if not has_permission:
+            return JsonResponse({'error': 'You do not have permission to create a task.'}, status=403)
+            
         project_id = request.data.get('project_id')  # Get project ID from request data
         name = request.data.get('name')  # Get task name from request data
         description = request.data.get('description', '')  # Get task description from request data
         assigned_to_id = request.data.get('assigned_to')  # Get user ID of the assignee from request data
-        status = request.data.get('status', 'Pending')  # Get task status from request data (default to Pending)
+        task_status = request.data.get('status', 'Pending')  # Get task status from request data (default to Pending)
         priority = request.data.get('priority', 'Medium')  # Get task priority from request data (default to Medium)
         due_date = request.data.get('due_date')  # Get task due date from request data
 
@@ -43,7 +56,7 @@ class TaskCreateView(APIView):
             name=name,
             description=description,
             assigned_to=assigned_to,
-            status=status,
+            status=task_status,
             priority=priority,
             due_date=due_date
         )
@@ -57,6 +70,10 @@ class TaskCreateView(APIView):
             "priority": task.priority,
             "due_date": task.due_date
         }, status=status.HTTP_201_CREATED)
+
+
+
+
 class GetTaskByIdView(APIView):
     """
     View to get a task by its ID.
@@ -96,8 +113,7 @@ class GetAllTasksView(APIView):
 
 
 class DeleteTaskView(APIView):
-    
-    def delete(self, request, task_id):
+    def delete(self, task_id):
         try:
             task = Task.objects.get(id=task_id)
         except Task.DoesNotExist:
