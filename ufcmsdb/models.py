@@ -160,3 +160,7 @@ class Permission(models.Model):
     def __str__(self):
         return f"{self.action.capitalize()} {self.module.capitalize()}"
     
+    
+    
+    
+    
