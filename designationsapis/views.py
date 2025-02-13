@@ -39,22 +39,26 @@ class DesignationCreateView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-
-# View for fetching all Designations
 class AllDesignationView(View):
     def get(self, request):
         try:
-            # Fetch all designations
-            designations = Designation.objects.all()
+            # Get department_id from the query parameters (default to None if not provided)
+            department_id = request.GET.get("department_id", None)
 
-            # Serialize data
+            if department_id:
+                # If department_id is provided, filter designations by department
+                designations = Designation.objects.filter(department_id=department_id)
+            else:
+                # If no department_id is provided, return all designations
+                designations = Designation.objects.all()
+
+            # Serialize the data
             designations_data = [{"id": desig.id, "name": desig.name, "department": desig.department_name} for desig in designations]
 
             return JsonResponse({"designations": designations_data}, status=200)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
 
 # View for fetching a single Designation by ID
 class DesignationByIdView(View):
