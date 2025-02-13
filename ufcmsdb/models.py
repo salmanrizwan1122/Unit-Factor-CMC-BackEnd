@@ -3,6 +3,8 @@ from datetime import date
 from django.contrib.auth.models import AbstractUser
 import uuid
 from django.utils.timezone import now
+import datetime
+
 
 class Role(models.Model):
     id = models.AutoField(primary_key=True)
@@ -39,7 +41,7 @@ class CustomUser(AbstractUser):
     monthly_leave_balance = models.IntegerField(default=2)  
     yearly_leave_balance = models.IntegerField(default=24) 
     created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_users')  # Track the creator
-
+    joining_date = models.DateField(default=datetime.date.today)  # Set default value to today's date
     def __str__(self):
         return self.username
 
