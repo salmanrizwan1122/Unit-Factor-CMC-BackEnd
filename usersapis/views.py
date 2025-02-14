@@ -19,7 +19,7 @@ class UserCreateView(APIView):
         try:
             data = json.loads(request.body)
 
-            required_fields = ['first_name', 'email', 'password', 'age', 'address', 'cnicno', 'role_id', 'username']
+            required_fields = ['first_name', 'email', 'password', 'age', 'address', 'cnicno', 'role_id', 'username' , 'phone']
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({'error': f'{field} is required'}, status=400)
@@ -27,45 +27,36 @@ class UserCreateView(APIView):
             role = Role.objects.filter(id=data['role_id']).first()
             if not role:
                 return JsonResponse({'error': 'Invalid role ID'}, status=400)
-
             department = None
             designation = None
-
             if data.get('department_id'):
                 department = Department.objects.filter(id=data['department_id']).first()
                 if not department:
                     return JsonResponse({'error': 'Invalid department ID'}, status=400)
-
             if data.get('designation_id'):
                 designation = Designation.objects.filter(id=data['designation_id']).first()
                 if not designation:
                     return JsonResponse({'error': 'Invalid designation ID'}, status=400)
-
             if CustomUser.objects.filter(email=data['email']).exists():
                 return JsonResponse({'error': 'Email already exists'}, status=400)
-
             if CustomUser.objects.filter(username=data['username']).exists():
                 return JsonResponse({'error': 'Username already exists'}, status=400)
-
             user = CustomUser.objects.create(
                 first_name=data['first_name'],
-                last_name=data['last_name'],
                 email=data['email'],
                 age=data['age'],
+                phone = data['phone'],
                 address=data['address'],
                 department=department,
                 designation=designation,
                 password=make_password(data['password']),
                 cnicno=data['cnicno'],
                 username=data['username'],
-                created_by=request.user
+                created_by=request.user,
+                joinig_date = data['joining_date']
             )
-
             user.role.set([role])
-
-            # Log user creation
             logger.info(f"User '{user.username}' created by: '{request.user.username}'")
-
             response_data = {
                 'message': 'User created successfully',
                 'user_id': user.id,
@@ -79,6 +70,7 @@ class UserCreateView(APIView):
                     'Designation': designation.name if designation else None,
                     'CNIC No': user.cnicno,
                     'Role': role.name,
+                    'phone' : user.phone,
                     'Joining Date': user.joining_date  # Add joining date to the response
                 }
             }
@@ -133,7 +125,7 @@ class GetUserView(APIView):
 
                 return JsonResponse({
                     'id': user.id,
-                    'name': f"{user.first_name} {user.last_name}",
+                    'name': user.first_name,
                     'email': user.email,
                     'age': user.age,
                     'address': user.address,
@@ -141,9 +133,12 @@ class GetUserView(APIView):
                     'designation': {'id': user.designation.id, 'name': user.designation.name} if user.designation else None,
                     'roles': [{'id': role.id, 'name': role.name} for role in user.role.all()],
                     'cnicno': user.cnicno,
+                    'phone':user.phone,
+                    'username':user.username,
+
                     'created_by': {
                         'id': user.created_by.id,
-                        'name': f"{user.created_by.first_name} {user.created_by.last_name}"
+                        'name': user.created_by.first_name
                     } if user.created_by else None,
                     'team_projects': team_projects,
                     'led_projects': led_projects,
@@ -191,7 +186,7 @@ class GetUserView(APIView):
 
                     users_data.append({
                         'id': user.id,
-                        'name': f"{user.first_name} {user.last_name}",
+                        'name':user.first_name,
                         'email': user.email,
                         'age': user.age,
                         'address': user.address,
@@ -199,6 +194,8 @@ class GetUserView(APIView):
                         'designation': {'id': user.designation.id, 'name': user.designation.name} if user.designation else None,
                         'roles': [{'id': role.id, 'name': role.name} for role in user.role.all()],
                         'cnicno': user.cnicno,
+                        'phone':user.phone,
+                        'username':user.username,
                         'created_by': {
                             'id': user.created_by.id,
                             'name': f"{user.created_by.first_name} {user.created_by.last_name}"
@@ -207,15 +204,11 @@ class GetUserView(APIView):
                         'led_projects': led_projects,
                         'joining_date': user.joining_date  # Add joining date here
                     })
-
                 return JsonResponse({'users': users_data}, status=200)
-
         except CustomUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
-
 class UpdateUserView(APIView):
     def post(self, request, user_id):
         try:
@@ -224,14 +217,11 @@ class UpdateUserView(APIView):
 
             if 'first_name' in data:
                 user.first_name = data['first_name']
-            if 'last_name' in data:
-                user.last_name = data['last_name']
+          
             if 'email' in data:
                 if CustomUser.objects.filter(email=data['email']).exclude(id=user_id).exists():
                     return JsonResponse({'error': 'Email already exists'}, status=400)
                 user.email = data['email']
-            if 'password' in data:
-                user.set_password(data['password'])  # Hash the password
             if 'age' in data:
                 user.age = data['age']
             if 'address' in data:
@@ -253,6 +243,10 @@ class UpdateUserView(APIView):
                 user.role.set([role])
             if 'cnicno' in data:
                 user.cnicno = data['cnicno']
+            if 'phone' in data:
+                user.phone = data['phone']
+            if 'joining_date' in data:
+                user.joining_date = data['joining_date']
 
             user.save()
 

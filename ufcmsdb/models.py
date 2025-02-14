@@ -37,6 +37,7 @@ class CustomUser(AbstractUser):
     designation = models.ForeignKey(Designation, on_delete=models.CASCADE , null=True)
     role = models.ManyToManyField(Role, related_name='users', null=True) 
     cnicno = models.BigIntegerField(null=True) 
+    phone = models.CharField(null=True)
     profile_pic = models.ImageField(upload_to='profile_pic/', null=True, blank=True)
     monthly_leave_balance = models.IntegerField(default=2)  
     yearly_leave_balance = models.IntegerField(default=24) 
